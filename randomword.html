@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Word Spinner App</title>
+    <link rel="stylesheet" href="./random.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+</head>
+<body>
+
+<div class="container">
+    <div class="card">
+        <div class="chat-header">Random Vocabulary Speaking Trainer</div>
+          <div class="chat-window">
+    <div id="wheel" class="message-list"></div>
+          </div>
+          <div class="chat-input">
+            <input type="text" id="word-input" class="message-input" placeholder="Enter words separated by commas">
+            <button id="spin-button" class="send-button">Spin</button>
+          </div>
+        </div>
+
+
+</div>
+<div class="result">
+    <div id="spin-result"></div>
+
+
+    <button id="listen-button">Listen <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 53 58" height="58" width="53">
+        <path stroke-width="9" stroke="currentColor" d="M44.25 36.3612L17.25 51.9497C11.5833 55.2213 4.5 51.1318 4.50001 44.5885L4.50001 13.4115C4.50001 6.86824 11.5833 2.77868 17.25 6.05033L44.25 21.6388C49.9167 24.9104 49.9167 33.0896 44.25 36.3612Z">
+        </path>
+        </svg>
+    <div>
+        <button id="voice-button" class="button-56" >Press to Speak</button>
+    </div>
+            <div id="result" class="highlight"><b></b></div>
+
+</div>
+    <script src="./randomword.js">
+    </script>
+</body>
+</html>
