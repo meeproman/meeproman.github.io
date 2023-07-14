@@ -213,7 +213,7 @@
   }
 
 :root{
-  background-image: url("background.svg");
+  background-image: url("./background.svg");
   background-repeat: repeat;
 }
 
