@@ -19,6 +19,8 @@ spinButton.addEventListener('click', function() {
         var randomWord = words[randomIndex];
         spinResult.textContent = randomWord;
         wheel.classList.add('spinning');
+        spinResult.style.display ="block";
+        resultfield.style.display ="none";
         setTimeout(function() {
             wheel.classList.remove('spinning');
         }, 2000);
