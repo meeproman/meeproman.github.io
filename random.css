@@ -19,9 +19,17 @@
   }
   
   #spin-result {
+    display: none;
     font-weight: bold;
     font-size: 2rem;
     margin: auto;
+    margin-top: 1rem;
+    height: 3rem;
+    width: auto;
+    border-radius: 5px;
+    background-color: #adf3ff;
+    padding: 0.8rem;
+    box-shadow: 0.1875rem 0.1875rem #000000;
   }
   
   .highlight {
@@ -97,6 +105,7 @@
     height: 13.75rem;
     overflow-y: scroll;
     word-wrap: break-word;
+    padding: 1rem;
   }
   
   .message-list {
@@ -202,4 +211,9 @@
     transform: translate(0.1875rem, 0.1875rem);
     transition: 0.20s;
   }
+
+:root{
+  background-image: url("background.svg");
+  background-repeat: repeat;
+}
 
