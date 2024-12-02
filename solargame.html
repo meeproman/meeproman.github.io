@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>เก็บพลังงานจากโซล่าเซลล์</title>
+    <link rel="icon" type="image" href="./logo.png">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-image: url("solar.jpg");
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: cover;
+            position: relative; /* Important for absolute positioning of logo */
+        }
+        #gameLogo {
+            position: absolute;
+            top: 0px;
+            left: 20px;
+            max-width: 300px; /* Adjust size as needed */
+            max-height: auto;
+            z-index: 10; /* Ensure logo is above other elements */
+        }
+        canvas {
+            border: 2px solid white;
+        }
+        #startScreen, #gameOverModal {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            text-align: center;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 18px;
+            margin: 10px;
+            cursor: pointer;
+        }
+        #gameOverModal {
+            display: none;
+        }
+        #picf{
+            background-color: white;
+            height: auto;
+            width: auto;
+        }
+    </style>
+
+<audio id="bgStartMusic" src="start.m4a"></audio>
+<audio id="bgGameMusic" src="game.m4a"></audio>
+<audio id="bgEndMusic" src="end.mp3"></audio>
+<audio id="pickupSound" src="pickup.mp3"></audio>
+
+</head>
+<body>
+    <div id="picf"><img id="gameLogo" src="logowithbg.png" alt="Solar Energy Game Logo"></div>
+    <div id="startScreen">
+        <h1>เก็บพลังงานจากโซล่าเซลล์</h1>
+        <p>เก็บพลังงานไฟฟ้าจากแสงอาทิตย์เข้าแบต เพื่อใช้ในบ้าน</p>
+        <button id="startButton">เริ่มเกม</button>
+    </div>
+
+    <div id="gameOverModal">
+        <h1>ไฟดับซะแล้ว</h1>
+        <p id="scoreDisplay">คุณมีพลังงานใช้จำนวน: 0 นาที</p>
+        <button id="restartButton">เล่นอีกครั้ง</button>
+    </div>
+
+    <canvas id="gameCanvas" width="1024" height="768"></canvas>
+    
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const startScreen = document.getElementById('startScreen');
+        const gameOverModal = document.getElementById('gameOverModal');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const startButton = document.getElementById('startButton');
+        const restartButton = document.getElementById('restartButton');
+
+        const images = {
+            solarPanel: new Image(),
+            inverter: new Image(),
+            light: new Image(),
+            wire: new Image()
+        };
+
+        // Note: Replace these with actual image paths when deploying
+        images.solarPanel.src = 'panel.png';
+        images.inverter.src = 'inverter.png';
+        images.light.src = 'light.png';
+        images.wire.src = 'wire.png';
+
+        const sounds = {
+            bgStart: document.getElementById('bgStartMusic'),
+            bgGame: document.getElementById('bgGameMusic'),
+            bgEnd: document.getElementById('bgEndMusic'),
+            pickup: document.getElementById('pickupSound'),
+        };
+        
+        function loadSounds() {
+            const soundPromises = Object.values(sounds).map(sound => {
+                return new Promise((resolve) => {
+                    sound.addEventListener('canplaythrough', resolve, { once: true });
+                    sound.addEventListener('error', resolve, { once: true }); // Ignore errors
+                });
+            });
+            return Promise.all(soundPromises);
+        }
+        
+
+        const COLORS = {
+            SKY: '#87CEEB',
+            SOLAR_PANEL: 'white',
+            SOLAR_RAY: 'yellow',
+            TEXT: 'black',
+            BATTERY_FULL: 'lime',
+            BATTERY_MEDIUM: 'orange',
+            BATTERY_LOW: 'red'
+        };
+
+        canvas.addEventListener('mousemove', (event) => {
+            if (game.state !== 'playing') return;
+            const rect = canvas.getBoundingClientRect();
+            
+            // Calculate mouse X position
+            let mouseX = event.clientX - rect.left;
+            
+            // Constrain panel movement within canvas width
+            mouseX = Math.max(
+                0, 
+                Math.min(
+                    mouseX - game.components.solarPanel.width / 2, 
+                    canvas.width - game.components.solarPanel.width
+                )
+            );
+
+            // Update both game.components and game.solarPanel to ensure consistency
+            game.components.solarPanel.x = mouseX;
+            game.solarPanel.x = mouseX;
+        });
+
+
+
+        const game = {
+            state: 'start',
+            score: 0,
+            startTime: 0,
+            rays: [],
+            solarPanel: {
+                x: 200, // Adjusted for wider canvas
+                y: 600, // Lowered to match new canvas height
+                width: 200, // Slightly increased size
+                height: 150,
+                wireConnected: false,
+                glowTimer: 0
+            },
+            battery: {
+                capacity: 100,
+                drainRate: 5,
+                chargeRate: 10
+            },
+            components: {
+                solarPanel: {
+                    x: 200, // Match solarPanel x
+                    y: 600, // Match solarPanel y
+                    width: 200, // Slightly increased size
+                    height: 150,
+                    wireConnected: false
+                },
+                inverter: {
+                    x: 700, // Moved right to utilize wider canvas
+                    y: 650, // Lowered to match new canvas height
+                    width: 150, // Slightly increased size
+                    height: 150
+                },
+                battery: {
+                    x: 900, // Moved right
+                    y: 450, // Adjusted vertically
+                    width: 100,
+                    height: 250 // Increased height
+                },
+                light: {
+                    x: 900, // Moved right
+                    y: 100, // Raised higher
+                    width: 100,
+                    height: 150 // Increased height
+                }
+            }
+        };
+
+        function playBackgroundMusic(state) {
+            // Set a lower volume (0.0 to 1.0, where 0.3 is 30% of max volume)
+            const MUSIC_VOLUME = 1.0;
+        
+            // Stop all music
+            Object.values(sounds).forEach(sound => sound.pause());
+            
+            // Reset and set volume for each music track
+            Object.values(sounds).forEach(sound => {
+                sound.volume = MUSIC_VOLUME;
+            });
+            
+            // Play music based on game state
+            if (state === 'start') {
+                sounds.bgStart.loop = true;
+                sounds.bgStart.play();
+            } else if (state === 'playing') {
+                sounds.bgGame.loop = true;
+                sounds.bgGame.play();
+            } else if (state === 'gameOver') {
+                sounds.bgEnd.loop = false;
+                sounds.bgEnd.play();
+            }
+        }
+        
+
+        class SolarRay {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = 0;
+                this.speed = Math.random() * 4 + 3;
+                this.radius = 5;
+                this.glowTimer = 0; // New property to track glow duration
+            }
+        
+            update() {
+                this.y += this.speed;
+                
+                // Decrease glow timer if it's active
+                if (this.glowTimer > 0) {
+                    this.glowTimer -= 1/60; // Assuming 60 fps
+                }
+            }
+        
+            draw() {
+                // Draw ray
+                ctx.beginPath();
+                ctx.fillStyle = COLORS.SOLAR_RAY;
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+        
+                // Add glow effect
+                const glowGradient = ctx.createRadialGradient(
+                    this.x, this.y, 0, 
+                    this.x, this.y, this.radius * 10
+                );
+                glowGradient.addColorStop(0, `rgba(255, 255, 0, ${this.glowTimer})`);
+                glowGradient.addColorStop(1, 'transparent');
+        
+                ctx.save();
+                ctx.globalCompositeOperation = 'lighter';
+                ctx.fillStyle = glowGradient;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius * 10, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        
+            isCaught(panel) {
+                return (
+                    this.x > panel.x &&
+                    this.x < panel.x + panel.width &&
+                    this.y > panel.y &&
+                    this.y < panel.y + panel.height
+                );
+            }
+        }
+
+        function drawSolarPanel() {
+            // Draw solar panel
+            if (images.solarPanel.complete) {
+                ctx.drawImage(
+                    images.solarPanel,
+                    game.components.solarPanel.x,
+                    game.components.solarPanel.y,
+                    game.components.solarPanel.width,
+                    game.components.solarPanel.height
+                );
+            }
+        
+            // Add glow effect if timer is active
+            if (game.solarPanel.glowTimer && game.solarPanel.glowTimer > 0) {
+                const panelCenterX = game.components.solarPanel.x + game.components.solarPanel.width / 2;
+                const panelCenterY = game.components.solarPanel.y + game.components.solarPanel.height / 2;
+                
+                const glowGradient = ctx.createRadialGradient(
+                    panelCenterX, panelCenterY, 0, 
+                    panelCenterX, panelCenterY, game.components.solarPanel.width * 1.5
+                );
+                glowGradient.addColorStop(0, `rgba(255, 255, 0, ${game.solarPanel.glowTimer})`);
+                glowGradient.addColorStop(1, 'transparent');
+        
+                ctx.save();
+                ctx.globalCompositeOperation = 'lighter';
+                ctx.fillStyle = glowGradient;
+                ctx.beginPath();
+                ctx.arc(panelCenterX, panelCenterY, game.components.solarPanel.width * 1.5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+        
+                // Decrease glow timer
+                game.solarPanel.glowTimer -= 1/60;
+                if (game.solarPanel.glowTimer < 0) {
+                    game.solarPanel.glowTimer = 0;
+                }
+            }
+        }
+
+        function drawComponents() {
+            // Draw existing components
+            if (images.inverter.complete) {
+                ctx.drawImage(
+                    images.inverter, 
+                    game.components.inverter.x, 
+                    game.components.inverter.y, 
+                    game.components.inverter.width, 
+                    game.components.inverter.height
+                );
+            }
+        
+            if (images.light.complete) {
+                // Calculate battery percentage and opacity
+                const batteryPercentage = game.battery.capacity / 100;
+        
+                // Create glow effect
+                const glowRadius = 100; // Adjust this to control glow size
+                const glowGradient = ctx.createRadialGradient(
+                    game.components.light.x + game.components.light.width / 2,
+                    game.components.light.y + game.components.light.height / 2,
+                    0,
+                    game.components.light.x + game.components.light.width / 2,
+                    game.components.light.y + game.components.light.height / 2,
+                    glowRadius
+                );
+        
+                // Glow color changes with battery level
+                const glowColor = `rgba(255, 255, 0, ${batteryPercentage * 0.5})`;
+                glowGradient.addColorStop(0, glowColor);
+                glowGradient.addColorStop(1, 'transparent');
+        
+                // Draw glow effect behind the light
+                ctx.save();
+                ctx.globalCompositeOperation = 'destination-over';
+                ctx.fillStyle = glowGradient;
+                ctx.beginPath();
+                ctx.arc(
+                    game.components.light.x + game.components.light.width / 2,
+                    game.components.light.y + game.components.light.height / 2,
+                    glowRadius,
+                    0,
+                    Math.PI * 2
+                );
+                ctx.fill();
+                ctx.restore();
+        
+                // Draw light with decreasing opacity based on battery level
+                ctx.globalAlpha = batteryPercentage; 
+                ctx.drawImage(
+                    images.light, 
+                    game.components.light.x, 
+                    game.components.light.y, 
+                    game.components.light.width, 
+                    game.components.light.height
+                );
+                ctx.globalAlpha = 1; // Reset opacity to default
+            }
+        
+            // Draw battery
+            drawBattery();
+        
+            // Draw wires
+            drawWires();
+        }
+
+        function drawWires() {
+            ctx.strokeStyle = 'yellow';
+            ctx.lineWidth = 3;
+
+            // Solar panel to inverter
+            ctx.beginPath();
+            ctx.moveTo(
+                game.components.solarPanel.x + game.components.solarPanel.width / 2, 
+                game.components.solarPanel.y + game.components.solarPanel.height / 2
+            );
+            ctx.lineTo(
+                game.components.inverter.x, 
+                game.components.inverter.y + game.components.inverter.height / 2
+            );
+            ctx.stroke();
+
+            // Inverter to battery
+            ctx.beginPath();
+            ctx.moveTo(
+                game.components.inverter.x + game.components.inverter.width, 
+                game.components.inverter.y + game.components.inverter.height / 2
+            );
+            ctx.lineTo(
+                game.components.battery.x, 
+                game.components.battery.y + game.components.battery.height / 2
+            );
+            ctx.stroke();
+
+            // Battery to light
+            ctx.beginPath();
+            ctx.moveTo(
+                game.components.battery.x + game.components.battery.width /2 , 
+                game.components.battery.y + game.components.battery.height / 2
+            );
+            ctx.lineTo(
+                game.components.light.x + game.components.light.width / 2, // Center X
+                game.components.light.y + game.components.light.height    // Bottom of light
+            );
+            ctx.stroke();
+        }
+
+        function updateElectricalSystem() {
+            const raysCollected = game.rays.some(ray => 
+                ray.isCaught(game.components.solarPanel)
+            );
+
+            game.components.solarPanel.wireConnected = raysCollected;
+            game.components.inverter.wireConnected = raysCollected;
+            game.components.light.isOn = raysCollected;
+        }
+
+        function drawBattery() {
+            const battery = game.components.battery;
+            const batteryX = battery.x;
+            const batteryY = battery.y;
+            const batteryWidth = battery.width;
+            const batteryHeight = battery.height;
+
+            // Battery body
+            ctx.fillStyle = 'gray';
+            ctx.fillRect(batteryX, batteryY, batteryWidth, batteryHeight);
+
+            // Positive terminal
+            ctx.fillStyle = 'red';
+            ctx.fillRect(
+                batteryX + batteryWidth / 4, 
+                batteryY - 20, 
+                batteryWidth / 2, 
+                20
+            );
+
+            // Battery fill (remaining code stays the same)
+            let batteryColor = COLORS.BATTERY_FULL;
+            if (game.battery.capacity < 30) batteryColor = COLORS.BATTERY_LOW;
+            else if (game.battery.capacity < 60) batteryColor = COLORS.BATTERY_MEDIUM;
+
+            ctx.fillStyle = batteryColor;
+            const fillHeight = (game.battery.capacity / 100) * batteryHeight;
+            ctx.fillRect(
+                batteryX, 
+                batteryY + batteryHeight - fillHeight, 
+                batteryWidth, 
+                fillHeight
+            );
+        }
+
+function drawTime() {
+    const elapsedTime = Math.floor((Date.now() - game.startTime) / 1000);
+    
+
+    // Score text
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 24px Arial';
+    ctx.textAlign = 'left';
+    
+    // Solar icon or text prefix
+    ctx.fillText('☀️', 20, 40);
+    
+    // Score text
+    ctx.fillStyle = '#FFD700'; // Golden color for score
+    ctx.font = 'bold 24px Arial';
+    ctx.fillText(`พลังงาน: ${elapsedTime} นาที`, 60, 40);
+}
+
+        function updateRays() {
+            if (Math.random() < 0.1) {
+                game.rays.push(new SolarRay());
+            }
+        
+            for (let i = game.rays.length - 1; i >= 0; i--) {
+                const ray = game.rays[i];
+                ray.update();
+        
+                if (ray.y > canvas.height) {
+                    game.rays.splice(i, 1);
+                    continue;
+                }
+        
+                if (ray.isCaught(game.components.solarPanel)) {
+                    game.battery.capacity = Math.min(
+                        100, 
+                        game.battery.capacity + game.battery.chargeRate * 0.1
+                    );
+                    
+                    // Set glow timer for the ray and solar panel
+                    ray.glowTimer = 0.5; // Half a second glow
+                    game.solarPanel.glowTimer = 0.5; // Half a second glow
+        
+                    game.rays.splice(i, 1);
+                    
+                    // Play pickup sound
+                    sounds.pickup.currentTime = 0;
+                    sounds.pickup.play();
+                }
+            }
+        }
+
+        function updateBattery() {
+            game.battery.capacity -= game.battery.drainRate / 60;
+
+            if (game.battery.capacity <= 0) {
+                endGame();
+            }
+        }
+
+        function endGame() {
+            game.state = 'gameOver';
+            const survivalTime = Math.floor((Date.now() - game.startTime) / 1000);
+            scoreDisplay.textContent = `คุณสะสมพลังงานจากแสงอาทิตย์ได้: ${survivalTime} นาที`;
+            gameOverModal.style.display = 'flex';
+        }
+
+        function gameLoop() {
+            if (game.state !== 'playing') return;
+        
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+            updateRays();
+            updateBattery();
+            updateElectricalSystem();
+        
+            drawComponents(); // Draw components (including battery)
+            drawBattery();    // Draw the battery (with updated opacity)
+        
+            // Draw rays above the battery
+            game.rays.forEach(ray => ray.draw());
+            drawSolarPanel();                     // Draw solar panel above rays
+            drawTime();
+        
+            requestAnimationFrame(gameLoop);
+        }
+        
+
+        canvas.addEventListener('mousemove', (event) => {
+            if (game.state !== 'playing') return;
+            const rect = canvas.getBoundingClientRect();
+            
+            // Calculate mouse X position
+            let mouseX = event.clientX - rect.left;
+            
+            // Constrain panel movement within canvas width
+            mouseX = Math.max(
+                0, 
+                Math.min(
+                    mouseX - game.components.solarPanel.width / 2, 
+                    canvas.width - game.components.solarPanel.width
+                )
+            );
+
+            // Update both game.components and game.solarPanel to ensure consistency
+            game.components.solarPanel.x = mouseX;
+            game.solarPanel.x = mouseX;
+        });
+
+        startButton.addEventListener('click', () => {
+            playBackgroundMusic('playing'); // Switch to gameplay music
+            startGame();
+        });
+        
+        restartButton.addEventListener('click', () => {
+            playBackgroundMusic('playing'); // Switch to gameplay music
+            startGame();
+        });
+        
+        function endGame() {
+            game.state = 'gameOver';
+            playBackgroundMusic('gameOver'); // Switch to game over music
+            const survivalTime = Math.floor((Date.now() - game.startTime) / 1000);
+            scoreDisplay.textContent = `คุณสะสมพลังงานจากแสงอาทิตย์ได้: ${survivalTime} นาที`;
+            gameOverModal.style.display = 'flex';
+        }
+        
+        function startGame() {
+            playBackgroundMusic('playing'); // Switch to gameplay music
+            startScreen.style.display = 'none';
+            gameOverModal.style.display = 'none';
+            game.state = 'playing';
+            game.rays = [];
+            game.battery.capacity = 100;
+            game.startTime = Date.now();
+            gameLoop();
+        }
+        
+
+        function restartGame() {
+            gameOverModal.style.display = 'none';
+            startGame();
+        }
+    </script>
+</body>
+</html>
