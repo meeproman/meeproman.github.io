@@ -51,15 +51,20 @@ async function startVideo(deviceId = '') {
     if (currentStream) {
       currentStream.getTracks().forEach(track => track.stop());
     }
+  
     const constraints = {
       video: deviceId ? { deviceId: { exact: deviceId } } : true
     };
+  
     try {
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       currentStream = stream;
+  
       video.srcObject = stream;
-      
-      // Wait for video metadata to load to get proper dimensions
+      video.setAttribute('playsinline', 'true'); // Prevents fullscreen on iOS
+      video.setAttribute('muted', 'true'); // Ensures autoplay works
+      video.play();
+  
       video.onloadedmetadata = () => {
         canvas.width = video.offsetWidth;
         canvas.height = video.offsetHeight;
@@ -68,6 +73,7 @@ async function startVideo(deviceId = '') {
       console.error('Error accessing camera:', err);
     }
   }
+  
 
 // Event listener for camera selection
 cameraSelect.addEventListener('change', (event) => {
@@ -211,7 +217,7 @@ window.addEventListener('click', (event) => {
   }
 });
 
-// Add this to your existing JavaScript
+// resize canvas when window is resized
 window.addEventListener('resize', () => {
     if (video) {
       canvas.width = video.offsetWidth;
