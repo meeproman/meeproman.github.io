@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image" href="TeachTools.png">
+  <title>สุ่มใบหน้า by Kru Toei</title>
+  <script defer src="face-api.min.js"></script>
+  <script defer src="v2.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+      background-color: #000;
+    }
+
+    a {
+        color: inherit;
+        text-decoration: none;
+    }
+
+    .camera-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    #canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .controls {
+      position: fixed;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      z-index: 100;
+      background-color: rgba(0, 0, 0, 0.5);
+      padding: 15px 25px;
+      border-radius: 10px;
+      backdrop-filter: blur(5px);
+    }
+
+    button {
+      padding: 12px 24px;
+      font-size: 16px;
+      cursor: pointer;
+      border: none;
+      border-radius: 5px;
+      transition: all 0.3s ease;
+    }
+
+    #cameraSelect {
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      margin-right: 10px;
+      background-color: white;
+    }
+
+    #captureBtn {
+      background-color: #4CAF50;
+      color: white;
+    }
+
+    #recaptureBtn {
+      background-color: #f44336;
+      color: white;
+      display: none;
+    }
+
+    #randomBtn {
+      background-color: #2196F3;
+      color: white;
+      display: none;
+    }
+
+    button:hover {
+      opacity: 0.8;
+      transform: translateY(-2px);
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .modal-content {
+      background-color: white;
+      padding: 20px;
+      border-radius: 10px;
+      width: 460px; /* Adding 30px padding each side + 400px content */
+      position: relative;
+      text-align: center;
+    }
+
+    .close-modal {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 24px;
+      cursor: pointer;
+      color: #666;
+    }
+
+    .selected-face {
+      width: 400px !important;
+      height: auto;
+      margin: 20px 0;
+      display: block;
+      align-self: center;
+      justify-self: center;
+      border-radius: 10px;
+
+    }
+
+    @keyframes boxHighlight {
+      0% { opacity: 1; }
+      50% { opacity: 0; }
+      100% { opacity: 1; }
+    }
+
+    .highlight {
+      animation: boxHighlight 0.3s ease-in-out;
+    }
+
+    .credit {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      color: #fff;
+      z-index: 100;
+      text-decoration: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="camera-container">
+    <video id="video" autoplay muted></video>
+    <canvas id="canvas"></canvas>
+  </div>
+
+  <div class="controls">
+    <select id="cameraSelect">
+      <option value="">กำลังโหลดภาพจากกล้อง...</option>
+    </select>
+    <button id="captureBtn">ถ่ายภาพ</button>
+    <button id="recaptureBtn">ถ่ายใหม่</button>
+    <button id="randomBtn">สุ่มผู้โชคดี</button>
+  </div>
+  <div class="credit">
+    <p>พัฒนาขึ้นโดย <a href="https://www.facebook.com/suttichai.roigrong/"><b>Suttichai Roigrong</b></a></p>
+  </div>
+
+  <div id="modal" class="modal">
+    <div class="modal-content">
+      <span class="close-modal">&times;</span>
+      <h2>ผู้โชคดี 😂</h2>
+      <canvas id="selectedFace" class="selected-face"></canvas>
+    </div>
+  </div>
+</body>
+</html>
