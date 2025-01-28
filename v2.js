@@ -28,41 +28,43 @@ async function initializeApp() {
 }
 
 async function loadAvailableCameras() {
-  try {
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    const videoDevices = devices.filter(device => device.kind === 'videoinput');
-    
-    // Clear the dropdown
-    cameraSelect.innerHTML = '';
-    
-    // Add all video devices to the dropdown
-    videoDevices.forEach(device => {
-      const option = document.createElement('option');
-      option.value = device.deviceId;
-      option.text = device.label || `Camera ${cameraSelect.options.length + 1}`;
-      cameraSelect.appendChild(option);
-    });
-  } catch (err) {
-    console.error('Error loading cameras:', err);
+    try {
+      // Request access to the camera first
+      await navigator.mediaDevices.getUserMedia({ video: true });
+  
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(device => device.kind === 'videoinput');
+  
+      // Clear the dropdown
+      cameraSelect.innerHTML = '';
+  
+      // Add all video devices to the dropdown
+      videoDevices.forEach(device => {
+        const option = document.createElement('option');
+        option.value = device.deviceId;
+        option.text = device.label || `Camera ${cameraSelect.options.length + 1}`;
+        cameraSelect.appendChild(option);
+      });
+    } catch (err) {
+      console.error('Error loading cameras:', err);
+    }
   }
-}
+  
 
-async function startVideo(deviceId = '') {
+  async function startVideo(deviceId = '') {
     if (currentStream) {
       currentStream.getTracks().forEach(track => track.stop());
     }
   
     const constraints = {
-      video: deviceId ? { deviceId: { exact: deviceId } } : true
+      video: deviceId ? { deviceId: { exact: deviceId } } : { facingMode: 'environment' }
     };
   
     try {
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       currentStream = stream;
-  
       video.srcObject = stream;
-      video.setAttribute('playsinline', 'true'); // Prevents fullscreen on iOS
-      video.setAttribute('muted', 'true'); // Ensures autoplay works
+      video.setAttribute('playsinline', 'true'); // Prevent fullscreen on iOS
       video.play();
   
       video.onloadedmetadata = () => {
@@ -73,6 +75,7 @@ async function startVideo(deviceId = '') {
       console.error('Error accessing camera:', err);
     }
   }
+  
   
 
 // Event listener for camera selection
