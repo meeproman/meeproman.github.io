@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>รางวัลการประกวดคลิปสั้นป้องกันยุงลาย</title>
+    <link rel="icon" href="./logo.png" type="image/x-icon">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Kanit', sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            background-color: #f0f2f5;
+        }
+
+        header {
+            text-align: center;
+            padding: 2rem;
+            background-color: #fff;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .section {
+            margin-bottom: 3rem;
+        }
+
+        .section-title {
+            color: #1a237e;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #1a237e;
+        }
+
+        .videos-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .video-card {
+            background: white;
+            padding: 1rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .video-card:hover {
+            transform: scale(1.05);
+        }
+
+        .video-wrapper {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            height: 0;
+        }
+
+        .video-wrapper iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .rank {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background-color: #ffd700;
+            color: #000;
+            border-radius: 5px;
+            margin-bottom: 0.5rem;
+        }
+
+        .rank.second {
+            background-color: #c0c0c0;
+        }
+
+        .rank.third {
+            background-color: #cd7f32;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <img src="./logo.png" alt="Logo" width="100">
+        <h1>ผลการประกวดคลิปสั้นป้องกันยุงลาย</h1>
+        <p>รวมวิดีโอผลงานที่ได้รับรางวัลการประกวด</p>
+    </header>
+
+    <div class="section">
+        <h2 class="section-title">ระดับชั้น ป.1-3</h2>
+        <div class="videos-container">
+            <div class="video-card">
+                <span class="rank">รางวัลที่ 1</span>
+                <div class="video-wrapper">
+                    <iframe id="primary13_1st" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                </div>
+            </div>
+            <div class="video-card">
+                <span class="rank second">รางวัลที่ 2</span>
+                <div class="video-wrapper">
+                    <iframe id="primary13_2nd" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                </div>
+            </div>
+            <div class="video-card">
+                <span class="rank third">รางวัลที่ 3</span>
+                <div class="video-wrapper">
+                    <iframe id="primary13_3rd" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2 class="section-title">ระดับชั้น ป.4-6</h2>
+        <div class="videos-container">
+            <div class="video-card">
+                <span class="rank">รางวัลที่ 1</span>
+                <div class="video-wrapper">
+                    <iframe id="primary46_1st" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                </div>
+            </div>
+            <div class="video-card">
+                <span class="rank second">รางวัลที่ 2</span>
+                <div class="video-wrapper">
+                    <iframe id="primary46_2nd" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                </div>
+            </div>
+            <div class="video-card">
+                <span class="rank third">รางวัลที่ 3</span>
+                <div class="video-wrapper">
+                    <iframe id="primary46_3rd" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2 class="section-title">ระดับชั้น ม.1-3</h2>
+        <div class="videos-container">
+            <div class="video-card">
+                <span class="rank">รางวัลที่ 1</span>
+                <div class="video-wrapper">
+                    <iframe id="secondary_1st" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                </div>
+            </div>
+            <div class="video-card">
+                <span class="rank second">รางวัลที่ 2</span>
+                <div class="video-wrapper">
+                    <iframe id="secondary_2nd" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                </div>
+            </div>
+            <div class="video-card">
+                <span class="rank third">รางวัลที่ 3</span>
+                <div class="video-wrapper">
+                    <iframe id="secondary_3rd" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Arrays for video links for each section
+        const primary13Videos = {
+            first: 'https://www.youtube.com/embed/XuB8r1lxukw" title="การประกวดคลิปสั้นป้องกันยุงลาย โรงเรียนบ้านหนองเตียน รางวัลชนะเลิศ ระดับประถมต้น" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin',
+            second: 'https://www.youtube.com/embed/XuB8r1lxukw" title="การประกวดคลิปสั้นป้องกันยุงลาย โรงเรียนบ้านหนองเตียน รางวัลชนะเลิศ ระดับประถมต้น" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen', // Add YouTube embed link here
+            third: 'https://drive.google.com/drive/u/0/folders/1GZ_XXSLroL8nyjc1ok6eQ3LhAH8Tfk3q'   // Add YouTube embed link here
+        };
+
+        const primary46Videos = {
+            first: "",  // Add YouTube embed link here
+            second: "", // Add YouTube embed link here
+            third: ""   // Add YouTube embed link here
+        };
+
+        const secondaryVideos = {
+            first: "",  // Add YouTube embed link here
+            second: "", // Add YouTube embed link here
+            third: ""   // Add YouTube embed link here
+        };
+
+        // Function to set video sources
+        function setVideoSources() {
+            // Primary 1-3
+            document.getElementById('primary13_1st').src = primary13Videos.first;
+            document.getElementById('primary13_2nd').src = primary13Videos.second;
+            document.getElementById('primary13_3rd').src = primary13Videos.third;
+
+            // Primary 4-6
+            document.getElementById('primary46_1st').src = primary46Videos.first;
+            document.getElementById('primary46_2nd').src = primary46Videos.second;
+            document.getElementById('primary46_3rd').src = primary46Videos.third;
+
+            // Secondary 1-3
+            document.getElementById('secondary_1st').src = secondaryVideos.first;
+            document.getElementById('secondary_2nd').src = secondaryVideos.second;
+            document.getElementById('secondary_3rd').src = secondaryVideos.third;
+        }
+
+        // Call the function when the page loads
+        window.onload = setVideoSources;
+    </script>
+</body>
+</html>
