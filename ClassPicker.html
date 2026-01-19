@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>สุ่มใบหน้า - Class Picker</title>
+    
+    <!-- PWA Settings -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Smart Picker">
+    <meta name="theme-color" content="#1a1a1a">
+    <meta name="mobile-web-app-capable" content="yes">
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- External Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <!-- Dynamic Icon Script (Runs immediately to set favicon) -->
+    <script>
+        (function() {
+            // Generate a dynamic app icon (Graduation Cap)
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            
+            // Background
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillRect(0, 0, 512, 512);
+            
+            // Emoji
+            ctx.font = '300px serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🎓', 256, 256);
+            
+            const iconUrl = canvas.toDataURL('image/png');
+            
+            // Set Favicon
+            const link = document.createElement('link');
+            link.type = 'image/x-icon';
+            link.rel = 'shortcut icon';
+            link.href = iconUrl;
+            document.head.appendChild(link);
+
+            // Set Apple Touch Icon
+            const appleLink = document.createElement('link');
+            appleLink.rel = 'apple-touch-icon';
+            appleLink.href = iconUrl;
+            document.head.appendChild(appleLink);
+        })();
+    </script>
+
+    <style>
+        body {
+            font-family: 'Prompt', sans-serif;
+            background-color: #1a1a1a;
+            overflow: hidden; /* Prevent scrolling */
+            touch-action: none;
+        }
+
+        /* Responsive Video Container */
+        .stage-container {
+            position: relative;
+            width: 100%;
+            height: 100dvh; /* Dynamic viewport height for mobile */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000;
+        }
+
+        .media-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 100%;
+            max-height: 100%;
+            aspect-ratio: 16/9; 
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            z-index: 1;
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        /* Floating Controls */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .btn-action {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-action:active {
+            transform: scale(0.95);
+        }
+
+        /* Animations */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 166, 0, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(255, 166, 0, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 166, 0, 0); }
+        }
+        
+        .animate-pulse-ring {
+            animation: pulse-ring 2s infinite;
+        }
+
+        /* Loading Spinner */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Install Modal Animation */
+        .slide-up-enter { transform: translateY(100%); opacity: 0; }
+        .slide-up-enter-active { transform: translateY(0); opacity: 1; transition: all 0.3s ease-out; }
+        .slide-up-exit { transform: translateY(100%); opacity: 0; transition: all 0.3s ease-in; }
+    </style>
+</head>
+<body class="text-white select-none">
+
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gray-900 transition-opacity duration-500">
+        <div class="loader mb-4"></div>
+        <h2 class="text-xl font-bold text-blue-400">กำลังเตรียมระบบ AI...</h2>
+        <p class="text-gray-400 text-sm mt-2">กรุณารอสักครู่ (Loading Models)</p>
+    </div>
+
+    <!-- Main App Area -->
+    <div class="stage-container">
+        <div class="media-wrapper" id="mediaWrapper">
+            <video id="video" autoplay muted playsinline webkit-playsinline></video>
+            <canvas id="canvas"></canvas>
+        </div>
+
+        <!-- Top Controls -->
+        <div class="absolute top-4 left-4 right-4 flex justify-between items-start z-30 pointer-events-none">
+            <!-- App Title -->
+            <div class="glass-panel px-4 py-2 rounded-full pointer-events-auto flex items-center gap-2 max-w-[50%]">
+                <span class="text-yellow-400 text-xl">🎓</span>
+                <div class="overflow-hidden">
+                    <h1 class="font-bold text-sm leading-none whitespace-nowrap">Smart Picker</h1>
+                    <span id="faceCount" class="text-[10px] text-gray-300 whitespace-nowrap">รอตรวจจับ...</span>
+                </div>
+            </div>
+            
+            <div class="flex gap-2 pointer-events-auto">
+                <!-- Camera Select -->
+                <div class="glass-panel p-2 rounded-full flex items-center justify-center">
+                    <select id="cameraSelect" class="bg-transparent text-sm outline-none w-[24px] h-[24px] opacity-0 absolute">
+                        <option value="">Auto</option>
+                    </select>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+
+                <!-- Install Button -->
+                <button id="installBtn" class="glass-panel p-2 rounded-full hover:bg-white/20 transition-colors" title="Install App">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Bottom Controls -->
+        <div class="absolute bottom-8 left-0 right-0 flex justify-center gap-4 z-20 px-4 pb-safe">
+            
+            <!-- Capture Button -->
+            <button id="captureBtn" class="btn-action bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-full shadow-lg flex items-center gap-2 animate-pulse-ring">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                ถ่ายภาพหมู่
+            </button>
+
+            <!-- Action Buttons (Hidden initially) -->
+            <div id="actionControls" class="hidden flex gap-3">
+                <button id="recaptureBtn" class="btn-action glass-panel hover:bg-white/20 text-white py-3 px-6 rounded-full font-semibold flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    ถ่ายใหม่
+                </button>
+                <button id="randomBtn" class="btn-action bg-blue-500 hover:bg-blue-600 text-white py-3 px-8 rounded-full font-bold shadow-lg flex items-center gap-2">
+                    <span class="text-xl">🎲</span>
+                    สุ่มผู้โชคดี!
+                </button>
+            </div>
+        </div>
+
+        <div class="absolute bottom-1 right-2 z-10 opacity-50 text-[10px]">
+            Dev by <a href="https://www.facebook.com/suttichai.roigrong/" target="_blank" class="underline">Suttichai R.</a>
+        </div>
+    </div>
+
+    <!-- Winner Modal -->
+    <div id="modal" class="fixed inset-0 z-40 flex items-center justify-center bg-black/80 backdrop-blur-sm hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl p-6 w-[90%] max-w-md text-center shadow-2xl transform transition-transform duration-300 scale-90" id="modalContent">
+            <div class="absolute -top-12 left-0 right-0 flex justify-center">
+                <span class="text-6xl filter drop-shadow-lg">🎉</span>
+            </div>
+            
+            <h2 class="text-2xl font-bold text-gray-800 mt-6 mb-2">ผู้โชคดีคือ...</h2>
+            
+            <div class="relative w-full aspect-[4/3] bg-gray-100 rounded-lg overflow-hidden mb-4 shadow-inner">
+                <canvas id="selectedFace" class="w-full h-full object-contain"></canvas>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <button id="keepBtn" class="py-3 px-4 rounded-xl bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300 transition-colors">
+                    เก็บไว้
+                </button>
+                <button id="removeBtn" class="py-3 px-4 rounded-xl bg-red-500 text-white font-semibold hover:bg-red-600 transition-colors">
+                    ❌ ลบออก
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PWA Install Instruction Modal -->
+    <div id="installModal" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 hidden">
+        <div class="bg-white text-gray-800 w-full sm:w-96 p-6 rounded-t-2xl sm:rounded-2xl shadow-2xl transform transition-transform duration-300 translate-y-full" id="installModalContent">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-lg">ติดตั้งแอพลงเครื่อง</h3>
+                <button id="closeInstallBtn" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <div id="iosInstructions" class="hidden">
+                <p class="mb-4 text-sm text-gray-600">สำหรับ iPhone/iPad (Safari):</p>
+                <ol class="list-decimal list-inside space-y-3 text-sm font-medium">
+                    <li class="flex items-center gap-2">
+                        <span>1. แตะที่ปุ่มแชร์</span>
+                        <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
+                        <span>ด้านล่าง</span>
+                    </li>
+                    <li>2. เลื่อนลงมาแล้วกด <span class="bg-gray-200 px-2 py-1 rounded">Add to Home Screen</span> (เพิ่มไปยังหน้าจอโฮม)</li>
+                    <li>3. กดปุ่ม <b>Add (เพิ่ม)</b> มุมขวาบน</li>
+                </ol>
+            </div>
+
+            <div id="androidInstructions" class="hidden">
+                <p class="mb-4 text-sm text-gray-600">สำหรับ Android (Chrome):</p>
+                <ol class="list-decimal list-inside space-y-3 text-sm font-medium">
+                    <li class="flex items-center gap-2">
+                        <span>1. แตะที่จุด 3 จุด</span>
+                        <svg class="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"></path></svg>
+                        <span>มุมขวาบน</span>
+                    </li>
+                    <li>2. เลือก <span class="bg-gray-200 px-2 py-1 rounded">Install App</span> หรือ <span class="bg-gray-200 px-2 py-1 rounded">Add to Home screen</span></li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- PWA Logic ---
+        const pwa = {
+            installPrompt: null,
+            init: function() {
+                // 1. Generate Manifest Blob
+                const manifest = {
+                    name: "Smart Picker",
+                    short_name: "Picker",
+                    start_url: window.location.href,
+                    display: "standalone",
+                    background_color: "#1a1a1a",
+                    theme_color: "#1a1a1a",
+                    icons: [{
+                        src: document.querySelector('link[rel="apple-touch-icon"]').href,
+                        sizes: "512x512",
+                        type: "image/png"
+                    }]
+                };
+                
+                const stringManifest = JSON.stringify(manifest);
+                const blob = new Blob([stringManifest], {type: 'application/json'});
+                const manifestURL = URL.createObjectURL(blob);
+                
+                const link = document.createElement('link');
+                link.rel = 'manifest';
+                link.href = manifestURL;
+                document.head.appendChild(link);
+
+                // 2. Handle Android Install Prompt
+                window.addEventListener('beforeinstallprompt', (e) => {
+                    e.preventDefault();
+                    this.installPrompt = e;
+                    console.log('Install prompt captured');
+                });
+
+                // 3. UI Listeners
+                const installBtn = document.getElementById('installBtn');
+                installBtn.addEventListener('click', () => this.showInstallGuide());
+            },
+            showInstallGuide: function() {
+                const modal = document.getElementById('installModal');
+                const content = document.getElementById('installModalContent');
+                const iosDiv = document.getElementById('iosInstructions');
+                const androidDiv = document.getElementById('androidInstructions');
+                
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+                modal.classList.remove('hidden');
+                // Trigger animation
+                requestAnimationFrame(() => {
+                    content.classList.remove('translate-y-full');
+                });
+
+                if (this.installPrompt) {
+                    // Try native prompt first for Android
+                    this.installPrompt.prompt();
+                    this.installPrompt.userChoice.then((choiceResult) => {
+                        if (choiceResult.outcome === 'accepted') {
+                            this.closeModal();
+                        }
+                        this.installPrompt = null;
+                    });
+                    // Fallback visually to Android instructions just in case
+                    androidDiv.classList.remove('hidden');
+                    iosDiv.classList.add('hidden');
+                } else if (isIOS) {
+                    iosDiv.classList.remove('hidden');
+                    androidDiv.classList.add('hidden');
+                } else {
+                    // Default to Android/PC instructions
+                    androidDiv.classList.remove('hidden');
+                    iosDiv.classList.add('hidden');
+                }
+            },
+            closeModal: function() {
+                const modal = document.getElementById('installModal');
+                const content = document.getElementById('installModalContent');
+                content.classList.add('translate-y-full');
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                }, 300);
+            }
+        };
+        
+        document.getElementById('closeInstallBtn').addEventListener('click', () => pwa.closeModal());
+        document.getElementById('installModal').addEventListener('click', (e) => {
+            if(e.target === document.getElementById('installModal')) pwa.closeModal();
+        });
+
+        // --- Audio System ---
+        const audioState = {
+            ctx: null,
+            init: function() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            },
+            playTick: function() {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                
+                // Short, sharp "woodblock" style sound
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(400, this.ctx.currentTime + 0.1);
+                
+                gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.1);
+                
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.1);
+            },
+            playWin: function() {
+                if (!this.ctx) return;
+                // C Major Fanfare (C, E, G, High C)
+                const notes = [523.25, 659.25, 783.99, 1046.50]; 
+                const now = this.ctx.currentTime;
+                
+                notes.forEach((freq, i) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    
+                    osc.type = 'triangle'; // Brighter sound
+                    osc.frequency.value = freq;
+                    
+                    const startTime = now + (i * 0.1);
+                    gain.gain.setValueAtTime(0, startTime);
+                    gain.gain.linearRampToValueAtTime(0.2, startTime + 0.05);
+                    gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.5);
+                    
+                    osc.start(startTime);
+                    osc.stop(startTime + 0.6);
+                });
+            }
+        };
+
+        // --- Existing App Logic ---
+        const state = {
+            mode: 'camera',
+            stream: null,
+            faces: [],
+            currentDeviceId: null,
+            capturedImage: null
+        };
+
+        const els = {
+            video: document.getElementById('video'),
+            canvas: document.getElementById('canvas'),
+            mediaWrapper: document.getElementById('mediaWrapper'),
+            cameraSelect: document.getElementById('cameraSelect'),
+            captureBtn: document.getElementById('captureBtn'),
+            actionControls: document.getElementById('actionControls'),
+            recaptureBtn: document.getElementById('recaptureBtn'),
+            randomBtn: document.getElementById('randomBtn'),
+            loadingScreen: document.getElementById('loadingScreen'),
+            faceCount: document.getElementById('faceCount'),
+            modal: document.getElementById('modal'),
+            modalContent: document.getElementById('modalContent'),
+            selectedFaceCanvas: document.getElementById('selectedFace'),
+            keepBtn: document.getElementById('keepBtn'),
+            removeBtn: document.getElementById('removeBtn')
+        };
+
+        async function init() {
+            // Initialize PWA features
+            pwa.init();
+
+            const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
+            try {
+                await Promise.all([
+                    faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+                ]);
+                els.loadingScreen.style.opacity = '0';
+                setTimeout(() => els.loadingScreen.classList.add('hidden'), 500);
+                await setupCamera();
+                populateCameras();
+            } catch (err) {
+                console.error("Failed to load models:", err);
+                els.loadingScreen.innerHTML = `<p class="text-red-500">Error loading AI models.<br>Check internet connection.</p>`;
+            }
+        }
+
+        async function setupCamera(deviceId = null) {
+            if (state.stream) state.stream.getTracks().forEach(t => t.stop());
+
+            const constraints = {
+                video: {
+                    deviceId: deviceId ? { exact: deviceId } : undefined,
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 },
+                    facingMode: 'environment'
+                }
+            };
+
+            try {
+                state.stream = await navigator.mediaDevices.getUserMedia(constraints);
+                els.video.srcObject = state.stream;
+                
+                const handleResize = () => {
+                    if (els.video.videoWidth) resizeCanvas();
+                    else requestAnimationFrame(handleResize);
+                };
+                els.video.onloadedmetadata = () => { els.video.play(); handleResize(); };
+                els.video.onplaying = () => handleResize();
+            } catch (err) {
+                console.error("Camera error:", err);
+                alert("Cannot access camera. Please allow permissions.");
+            }
+        }
+
+        async function populateCameras() {
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(d => d.kind === 'videoinput');
+                els.cameraSelect.innerHTML = '';
+                videoDevices.forEach((device, index) => {
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.text = device.label || `Cam ${index + 1}`;
+                    els.cameraSelect.appendChild(option);
+                });
+                els.cameraSelect.onchange = (e) => setupCamera(e.target.value);
+            } catch (e) { console.error(e); }
+        }
+
+        function resizeCanvas() {
+            if (!els.video.videoWidth) return;
+            const ratio = els.video.videoWidth / els.video.videoHeight;
+            els.mediaWrapper.style.aspectRatio = `${ratio}`;
+            els.canvas.width = els.video.videoWidth;
+            els.canvas.height = els.video.videoHeight;
+            const ctx = els.canvas.getContext('2d');
+            if (state.mode === 'camera') ctx.clearRect(0, 0, els.canvas.width, els.canvas.height);
+            else if (state.mode === 'captured') drawDetections();
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        els.captureBtn.addEventListener('click', async () => {
+            // Initialize audio context on first user interaction to comply with browser autoplay policies
+            audioState.init();
+            
+            els.captureBtn.innerHTML = '<div class="loader" style="width:20px;height:20px;border-width:2px;"></div> Analyzing...';
+            const ctx = els.canvas.getContext('2d');
+            ctx.drawImage(els.video, 0, 0, els.canvas.width, els.canvas.height);
+            state.capturedImage = ctx.getImageData(0, 0, els.canvas.width, els.canvas.height);
+            const detections = await faceapi.detectAllFaces(els.canvas, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.4 }));
+            state.faces = detections.map(d => ({ box: d.box, removed: false }));
+            state.mode = 'captured';
+            if (state.stream) state.stream.getTracks().forEach(t => t.stop());
+            els.captureBtn.classList.add('hidden');
+            els.actionControls.classList.remove('hidden');
+            drawDetections();
+            updateFaceCount();
+        });
+
+        function drawDetections() {
+            if (!state.capturedImage) return;
+            const ctx = els.canvas.getContext('2d');
+            ctx.putImageData(state.capturedImage, 0, 0);
+            state.faces.forEach((face, i) => {
+                const box = face.box;
+                ctx.lineWidth = 3;
+                if (face.removed) {
+                    ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+                    ctx.strokeRect(box.x, box.y, box.width, box.height);
+                    ctx.beginPath();
+                    ctx.moveTo(box.x, box.y);
+                    ctx.lineTo(box.x + box.width, box.y + box.height);
+                    ctx.moveTo(box.x + box.width, box.y);
+                    ctx.lineTo(box.x, box.y + box.height);
+                    ctx.stroke();
+                } else {
+                    ctx.strokeStyle = '#00ff00';
+                    ctx.strokeRect(box.x, box.y, box.width, box.height);
+                    ctx.fillStyle = '#00ff00';
+                    ctx.font = 'bold 24px Arial';
+                    ctx.fillText(i + 1, box.x, box.y - 10);
+                }
+            });
+        }
+
+        function updateFaceCount() {
+            const active = state.faces.filter(f => !f.removed).length;
+            els.faceCount.textContent = `พบ ${state.faces.length} คน (เหลือ ${active})`;
+            els.captureBtn.innerHTML = 'ถ่ายภาพหมู่';
+        }
+
+        els.recaptureBtn.addEventListener('click', () => {
+            state.mode = 'camera';
+            state.faces = [];
+            state.capturedImage = null;
+            const ctx = els.canvas.getContext('2d');
+            ctx.clearRect(0, 0, els.canvas.width, els.canvas.height);
+            els.actionControls.classList.add('hidden');
+            els.captureBtn.classList.remove('hidden');
+            els.faceCount.textContent = "รอถ่ายภาพ...";
+            setupCamera(els.cameraSelect.value);
+        });
+
+        let selectedFaceIndex = -1;
+        els.randomBtn.addEventListener('click', async () => {
+            // Ensure audio is ready
+            audioState.init();
+
+            const activeIndices = state.faces.map((f, i) => f.removed ? -1 : i).filter(i => i !== -1);
+            if (activeIndices.length === 0) { alert("ไม่เหลือใครให้สุ่มแล้วครับ!"); return; }
+            els.randomBtn.disabled = true;
+            els.randomBtn.classList.add('opacity-50');
+            
+            let speed = 50;
+            let rounds = 0;
+            const totalRounds = 30;
+
+            const loop = () => {
+                const randomIndex = Math.floor(Math.random() * activeIndices.length);
+                const actualIndex = activeIndices[randomIndex];
+                drawDetections();
+                
+                // Play Sound!
+                audioState.playTick();
+
+                const ctx = els.canvas.getContext('2d');
+                const box = state.faces[actualIndex].box;
+                ctx.lineWidth = 6;
+                ctx.strokeStyle = '#FFD700';
+                ctx.strokeRect(box.x, box.y, box.width, box.height);
+                rounds++;
+                if (rounds < totalRounds) {
+                    if (rounds > totalRounds - 10) speed += 30;
+                    setTimeout(loop, speed);
+                } else {
+                    finishSelection(actualIndex);
+                }
+            };
+            loop();
+        });
+
+        function finishSelection(index) {
+            // Play Win Sound!
+            audioState.playWin();
+
+            selectedFaceIndex = index;
+            const face = state.faces[index];
+            const box = face.box;
+            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+            const sCanvas = els.selectedFaceCanvas;
+            const sCtx = sCanvas.getContext('2d');
+            sCanvas.width = box.width;
+            sCanvas.height = box.height;
+            sCtx.drawImage(els.canvas, box.x, box.y, box.width, box.height, 0, 0, box.width, box.height);
+            els.modal.classList.remove('hidden');
+            setTimeout(() => {
+                els.modal.classList.remove('opacity-0');
+                els.modalContent.classList.remove('scale-90');
+                els.modalContent.classList.add('scale-100');
+            }, 10);
+            els.randomBtn.disabled = false;
+            els.randomBtn.classList.remove('opacity-50');
+        }
+
+        function closeModal() {
+            els.modal.classList.add('opacity-0');
+            els.modalContent.classList.remove('scale-100');
+            els.modalContent.classList.add('scale-90');
+            setTimeout(() => { els.modal.classList.add('hidden'); }, 300);
+            drawDetections();
+            updateFaceCount();
+        }
+
+        els.keepBtn.addEventListener('click', closeModal);
+        els.removeBtn.addEventListener('click', () => {
+            if (selectedFaceIndex > -1) state.faces[selectedFaceIndex].removed = true;
+            closeModal();
+        });
+
+        init();
+    </script>
+</body>
+</html>
