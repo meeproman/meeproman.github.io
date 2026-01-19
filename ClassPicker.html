@@ -22,7 +22,7 @@
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-    <!-- Dynamic Icon Script (Runs immediately to set favicon) -->
+    <!-- Dynamic Icon Script -->
     <script>
         (function() {
             const canvas = document.createElement('canvas');
@@ -135,10 +135,6 @@
             animation: spin 1s linear infinite;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        .slide-up-enter { transform: translateY(100%); opacity: 0; }
-        .slide-up-enter-active { transform: translateY(0); opacity: 1; transition: all 0.3s ease-out; }
-        .slide-up-exit { transform: translateY(100%); opacity: 0; transition: all 0.3s ease-in; }
     </style>
 </head>
 <body class="text-white select-none">
@@ -153,7 +149,6 @@
     <!-- Main App Area -->
     <div class="stage-container">
         <div class="media-wrapper" id="mediaWrapper">
-            <!-- Added playsinline webkit-playsinline for strict iOS support -->
             <video id="video" autoplay muted playsinline webkit-playsinline></video>
             <canvas id="canvas"></canvas>
         </div>
@@ -177,6 +172,13 @@
                         <path fill-rule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
                     </svg>
                 </div>
+
+                <!-- NEW: Reload Button -->
+                <button id="reloadBtn" class="glass-panel p-2 rounded-full hover:bg-white/20 transition-colors" title="Reload App">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v3.276a1 1 0 01-2 0V14.907A7.002 7.002 0 013.293 12.243a1 1 0 01.715-1.186z" clip-rule="evenodd" />
+                    </svg>
+                </button>
 
                 <button id="installBtn" class="glass-panel p-2 rounded-full hover:bg-white/20 transition-colors" title="Install App">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -350,49 +352,64 @@
             if(e.target === document.getElementById('installModal')) pwa.closeModal();
         });
 
+        // Add Reload Functionality
+        document.getElementById('reloadBtn').addEventListener('click', () => {
+            if (confirm("ต้องการรีโหลดแอพหรือไม่? (ข้อมูลใบหน้าจะหายไป)")) {
+                window.location.reload();
+            }
+        });
+
         // --- Audio System ---
         const audioState = {
             ctx: null,
-            init: function() {
-                if (!this.ctx) {
-                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-                }
-                if (this.ctx.state === 'suspended') {
-                    this.ctx.resume();
+            init: async function() {
+                try {
+                    if (!this.ctx) {
+                        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    }
+                    if (this.ctx.state === 'suspended') {
+                        await this.ctx.resume();
+                    }
+                } catch (e) {
+                    console.warn("Audio init failed", e);
                 }
             },
             playTick: function() {
                 if (!this.ctx) return;
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(800, this.ctx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(400, this.ctx.currentTime + 0.1);
-                gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.1);
-                osc.start();
-                osc.stop(this.ctx.currentTime + 0.1);
-            },
-            playWin: function() {
-                if (!this.ctx) return;
-                const notes = [523.25, 659.25, 783.99, 1046.50]; 
-                const now = this.ctx.currentTime;
-                notes.forEach((freq, i) => {
+                try {
                     const osc = this.ctx.createOscillator();
                     const gain = this.ctx.createGain();
                     osc.connect(gain);
                     gain.connect(this.ctx.destination);
-                    osc.type = 'triangle';
-                    osc.frequency.value = freq;
-                    const startTime = now + (i * 0.1);
-                    gain.gain.setValueAtTime(0, startTime);
-                    gain.gain.linearRampToValueAtTime(0.2, startTime + 0.05);
-                    gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.5);
-                    osc.start(startTime);
-                    osc.stop(startTime + 0.6);
-                });
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(800, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(400, this.ctx.currentTime + 0.1);
+                    gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.1);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.1);
+                } catch (e) {}
+            },
+            playWin: function() {
+                if (!this.ctx) return;
+                try {
+                    const notes = [523.25, 659.25, 783.99, 1046.50]; 
+                    const now = this.ctx.currentTime;
+                    notes.forEach((freq, i) => {
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.type = 'triangle';
+                        osc.frequency.value = freq;
+                        const startTime = now + (i * 0.1);
+                        gain.gain.setValueAtTime(0, startTime);
+                        gain.gain.linearRampToValueAtTime(0.2, startTime + 0.05);
+                        gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.5);
+                        osc.start(startTime);
+                        osc.stop(startTime + 0.6);
+                    });
+                } catch (e) {}
             }
         };
 
@@ -458,8 +475,6 @@
         async function setupCamera(deviceId = null) {
             if (state.stream) state.stream.getTracks().forEach(t => t.stop());
 
-            // FIX: If no specific deviceId is sent (Auto), FORCE 'environment' (Back Camera)
-            // This prevents the camera from flipping to front on reset
             const constraints = {
                 video: {
                     deviceId: deviceId ? { exact: deviceId } : undefined,
@@ -491,7 +506,6 @@
                 const videoDevices = devices.filter(d => d.kind === 'videoinput');
                 els.cameraSelect.innerHTML = '';
                 
-                // Add "Auto" option that explicitly prefers back camera
                 const autoOption = document.createElement('option');
                 autoOption.value = "";
                 autoOption.text = "Auto (Back)";
@@ -522,25 +536,21 @@
         window.addEventListener('resize', resizeCanvas);
 
         els.captureBtn.addEventListener('click', async () => {
-            audioState.init();
+            // Safe Audio Init
+            await audioState.init();
             
-            // UI Update - show spinner
             const originalBtnContent = els.captureBtn.innerHTML;
             els.captureBtn.innerHTML = '<div class="loader" style="width:20px;height:20px;border-width:2px;"></div> Analyzing...';
             els.captureBtn.disabled = true;
 
-            // Use setTimeout to ensure the UI paints the spinner BEFORE the heavy AI task starts
             setTimeout(async () => {
                 try {
                     const ctx = els.canvas.getContext('2d');
-                    // Draw frozen frame
                     ctx.drawImage(els.video, 0, 0, els.canvas.width, els.canvas.height);
                     state.capturedImage = ctx.getImageData(0, 0, els.canvas.width, els.canvas.height);
                     
-                    // Stop video to save resources
                     if (state.stream) state.stream.getTracks().forEach(t => t.stop());
 
-                    // Run Detection
                     const detections = await faceapi.detectAllFaces(els.canvas, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.4 }));
                     
                     state.faces = detections.map(d => ({ box: d.box, removed: false }));
@@ -553,11 +563,10 @@
                 } catch (e) {
                     console.error("Detection error:", e);
                     alert("Error detecting faces. Try again.");
-                    // Restore UI if error
                     els.captureBtn.innerHTML = originalBtnContent;
                     els.captureBtn.disabled = false;
                 }
-            }, 50); // Small delay to let UI thread update
+            }, 50);
         });
 
         function drawDetections() {
@@ -603,41 +612,62 @@
             els.captureBtn.classList.remove('hidden');
             els.faceCount.textContent = "รอถ่ายภาพ...";
             
-            // Pass the current value of the dropdown. If it is empty (""), setupCamera will force back camera.
             setupCamera(els.cameraSelect.value);
         });
 
         let selectedFaceIndex = -1;
         els.randomBtn.addEventListener('click', async () => {
-            audioState.init();
-            const activeIndices = state.faces.map((f, i) => f.removed ? -1 : i).filter(i => i !== -1);
-            if (activeIndices.length === 0) { alert("ไม่เหลือใครให้สุ่มแล้วครับ!"); return; }
-            els.randomBtn.disabled = true;
-            els.randomBtn.classList.add('opacity-50');
-            
-            let speed = 50;
-            let rounds = 0;
-            const totalRounds = 30;
+            try {
+                // 1. Critical Audio Resume for iOS
+                await audioState.init();
 
-            const loop = () => {
-                const randomIndex = Math.floor(Math.random() * activeIndices.length);
-                const actualIndex = activeIndices[randomIndex];
-                drawDetections();
-                audioState.playTick();
-                const ctx = els.canvas.getContext('2d');
-                const box = state.faces[actualIndex].box;
-                ctx.lineWidth = 6;
-                ctx.strokeStyle = '#FFD700';
-                ctx.strokeRect(box.x, box.y, box.width, box.height);
-                rounds++;
-                if (rounds < totalRounds) {
-                    if (rounds > totalRounds - 10) speed += 30;
-                    setTimeout(loop, speed);
-                } else {
-                    finishSelection(actualIndex);
-                }
-            };
-            loop();
+                const activeIndices = state.faces.map((f, i) => f.removed ? -1 : i).filter(i => i !== -1);
+                if (activeIndices.length === 0) { alert("ไม่เหลือใครให้สุ่มแล้วครับ!"); return; }
+                
+                els.randomBtn.disabled = true;
+                els.randomBtn.classList.add('opacity-50');
+                
+                let speed = 50;
+                let rounds = 0;
+                const totalRounds = 30;
+
+                const loop = () => {
+                    try {
+                        const randomIndex = Math.floor(Math.random() * activeIndices.length);
+                        const actualIndex = activeIndices[randomIndex];
+                        drawDetections();
+                        
+                        // Safe Audio
+                        audioState.playTick();
+
+                        const ctx = els.canvas.getContext('2d');
+                        const box = state.faces[actualIndex].box;
+                        ctx.lineWidth = 6;
+                        ctx.strokeStyle = '#FFD700';
+                        ctx.strokeRect(box.x, box.y, box.width, box.height);
+                        
+                        rounds++;
+                        if (rounds < totalRounds) {
+                            if (rounds > totalRounds - 10) speed += 30;
+                            setTimeout(loop, speed);
+                        } else {
+                            finishSelection(actualIndex);
+                        }
+                    } catch (loopErr) {
+                        console.error("Animation Error:", loopErr);
+                        // Emergency Exit to prevent frozen button
+                        els.randomBtn.disabled = false;
+                        els.randomBtn.classList.remove('opacity-50');
+                        alert("Animation error. Please reload.");
+                    }
+                };
+                loop();
+
+            } catch (err) {
+                console.error("Random Start Error:", err);
+                els.randomBtn.disabled = false;
+                els.randomBtn.classList.remove('opacity-50');
+            }
         });
 
         function finishSelection(index) {
@@ -645,18 +675,24 @@
             selectedFaceIndex = index;
             const face = state.faces[index];
             const box = face.box;
-            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+            
+            try {
+                confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+            } catch(e) {}
+
             const sCanvas = els.selectedFaceCanvas;
             const sCtx = sCanvas.getContext('2d');
             sCanvas.width = box.width;
             sCanvas.height = box.height;
             sCtx.drawImage(els.canvas, box.x, box.y, box.width, box.height, 0, 0, box.width, box.height);
+            
             els.modal.classList.remove('hidden');
             setTimeout(() => {
                 els.modal.classList.remove('opacity-0');
                 els.modalContent.classList.remove('scale-90');
                 els.modalContent.classList.add('scale-100');
             }, 10);
+            
             els.randomBtn.disabled = false;
             els.randomBtn.classList.remove('opacity-50');
         }
